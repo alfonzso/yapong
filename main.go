@@ -120,12 +120,14 @@ var direction = map[DirectEnum]DirectionXY{
 func AnimateBall(config Config, screenBuff *screenBuffer) {
 	x := config.Screen.Height / 2
 	y := config.Screen.Width / 2
+	// x := 31
+	// y := 82
 	gameMemory := Memory{x, y, (*screenBuff)[x][y], BottomRight}
 	// (*screenBuff)[x][y] = ball
 	// time.Sleep(1 * time.Second)
 	for true {
 
-		(*screenBuff)[gameMemory.x][gameMemory.y] = gameMemory.val
+		// (*screenBuff)[gameMemory.x][gameMemory.y] = gameMemory.val
 		// x += 1
 		// y -= 1
 		// x += direction[BottomRight].x
@@ -134,8 +136,13 @@ func AnimateBall(config Config, screenBuff *screenBuffer) {
 		y += direction[gameMemory.direction].y
 
 		gameMemory = Memory{x, y, (*screenBuff)[x][y], gameMemory.direction}
-		if len(*screenBuff) >= x || len((*screenBuff)[x]) >= y {
-			newDirection := gameMemory.direction + 2%7
+		fmt.Println(
+			len(*screenBuff), len((*screenBuff)[x]),
+			x, y,
+		)
+		if x >= len(*screenBuff)-1 || y >= len((*screenBuff)[x])-1 || x == 0 || y == 0 {
+			newDirection := (gameMemory.direction + 2) % 7
+			fmt.Println("newdirrrrr", gameMemory.direction, newDirection)
 
 			x -= direction[gameMemory.direction].x
 			y -= direction[gameMemory.direction].y
@@ -147,7 +154,8 @@ func AnimateBall(config Config, screenBuff *screenBuffer) {
 
 		}
 		(*screenBuff)[x][y] = ball
-		time.Sleep(1 * time.Second)
+		// time.Sleep(1 * time.Second)
+		time.Sleep(250 * time.Millisecond)
 	}
 }
 
@@ -183,5 +191,5 @@ func main() {
 	// 	}
 	// 	time.Sleep(1 * time.Second)
 	// }
-	time.Sleep(25 * time.Second)
+	time.Sleep(25 * time.Minute)
 }

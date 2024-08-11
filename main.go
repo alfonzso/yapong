@@ -91,22 +91,55 @@ type Memory struct {
 type DirectEnum int
 
 const (
-	TopLeft DirectEnum = iota
+	DefaultDE DirectEnum = iota
+	TopLeft
 	Top
 	TopRight
 	MidLeft
+	Center
 	MidRight
 	BottomLeft
 	Bottom
 	BottomRight
 )
 
+var DirectHelper = map[DirectEnum]string{
+	DefaultDE:   "defa",
+	TopLeft:     "TopLeft",
+	Top:         "Top",
+	TopRight:    "TopRight",
+	MidLeft:     "MidLeft",
+	Center:      "Center",
+	MidRight:    "MidRight",
+	BottomLeft:  "BottomLeft",
+	Bottom:      "Bottom",
+	BottomRight: "BottomRight",
+}
+
+type SideEnum int
+
+const (
+	DefaultSE SideEnum = iota
+	TopSide
+	LeftSide
+	RightSide
+	BottomSide
+)
+
+var SideHelper = map[SideEnum]string{
+	DefaultSE:  "defa",
+	TopSide:    "TopSide",
+	LeftSide:   "LeftSide",
+	RightSide:  "RightSide",
+	BottomSide: "BottomSide",
+}
+
 type DirectionXY struct {
 	x int
 	y int
 }
 
-var direction = map[DirectEnum]DirectionXY{
+var directionMap = map[DirectEnum]DirectionXY{
 	TopLeft:     {-1, -1},
 	Top:         {-1, 0},
 	TopRight:    {-1, 1},
@@ -115,6 +148,46 @@ var direction = map[DirectEnum]DirectionXY{
 	BottomLeft:  {1, -1},
 	Bottom:      {1, 0},
 	BottomRight: {1, 1},
+}
+
+func getSideName(x, y int, config Config) SideEnum {
+	if x <= 1 {
+		return TopSide
+	}
+	if x >= config.Screen.Height-1 {
+		return BottomSide
+	}
+	if y <= 1 {
+		return LeftSide
+	}
+	if y >= config.Screen.Width-1 {
+		return RightSide
+	}
+	return DefaultSE
+}
+
+// var directionMap = map[
+
+func getDirection(side SideEnum, direction DirectEnum) DirectEnum {
+	if side == TopSide && direction == TopRight {
+		return BottomRight
+	}
+	if side == RightSide && direction == BottomRight {
+		return BottomLeft
+	}
+	if side == BottomSide && direction == BottomLeft {
+		return TopLeft
+	}
+	if side == TopSide && direction == TopLeft {
+		return BottomLeft
+	}
+	if side == LeftSide && direction == BottomLeft {
+		return BottomRight
+	}
+	if side == BottomSide && direction == BottomRight {
+		return TopRight
+	}
+	return DefaultDE
 }
 
 func AnimateBall(config Config, screenBuff *screenBuffer) {
@@ -127,35 +200,39 @@ func AnimateBall(config Config, screenBuff *screenBuffer) {
 	// time.Sleep(1 * time.Second)
 	for true {
 
-		// (*screenBuff)[gameMemory.x][gameMemory.y] = gameMemory.val
+		(*screenBuff)[gameMemory.x][gameMemory.y] = gameMemory.val
 		// x += 1
 		// y -= 1
 		// x += direction[BottomRight].x
 		// y += direction[BottomRight].y
-		x += direction[gameMemory.direction].x
-		y += direction[gameMemory.direction].y
+		x += directionMap[gameMemory.direction].x
+		y += directionMap[gameMemory.direction].y
 
 		gameMemory = Memory{x, y, (*screenBuff)[x][y], gameMemory.direction}
 		fmt.Println(
 			len(*screenBuff), len((*screenBuff)[x]),
 			x, y,
 		)
+
 		if x >= len(*screenBuff)-1 || y >= len((*screenBuff)[x])-1 || x == 0 || y == 0 {
-			newDirection := (gameMemory.direction + 2) % 7
-			fmt.Println("newdirrrrr", gameMemory.direction, newDirection)
+			// newDirection := (gameMemory.direction + 3) % 9
+			side := getSideName(x, y, config)
+			newDirection := getDirection(side, gameMemory.direction)
+			fmt.Println("newdirrrrr", DirectHelper[gameMemory.direction], DirectHelper[newDirection], SideHelper[side])
 
-			x -= direction[gameMemory.direction].x
-			y -= direction[gameMemory.direction].y
+			x -= directionMap[gameMemory.direction].x
+			y -= directionMap[gameMemory.direction].y
 
-			x += direction[newDirection].x
-			y += direction[newDirection].y
+			x += directionMap[newDirection].x
+			y += directionMap[newDirection].y
 
 			gameMemory = Memory{x, y, (*screenBuff)[x][y], newDirection}
 
 		}
 		(*screenBuff)[x][y] = ball
 		// time.Sleep(1 * time.Second)
-		time.Sleep(250 * time.Millisecond)
+		// time.Sleep(250 * time.Millisecond)
+		time.Sleep(125 * time.Millisecond)
 	}
 }
 

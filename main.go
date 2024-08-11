@@ -82,7 +82,7 @@ func Animation(screenBuff *screenBuffer) {
 		fmt.Print("\033[2J")
 		PrintLevel(*screenBuff)
 		// time.Sleep(1 * time.Second)
-		time.Sleep(750 * time.Millisecond)
+		time.Sleep(125 * time.Millisecond)
 	}
 }
 
@@ -141,14 +141,14 @@ var SideHelper = map[SideEnum]string{
 }
 
 var directionMap = map[DirectEnum]Points{
-	TopLeft:     {-4, -4},
-	Top:         {-4, 0},
-	TopRight:    {-4, 4},
-	MidLeft:     {0, -4},
-	MidRight:    {0, 4},
-	BottomLeft:  {4, -4},
-	Bottom:      {4, 0},
-	BottomRight: {4, 4},
+	TopLeft:     {-1, -1},
+	Top:         {-1, 0},
+	TopRight:    {-1, 1},
+	MidLeft:     {0, -1},
+	MidRight:    {0, 1},
+	BottomLeft:  {1, -1},
+	Bottom:      {1, 0},
+	BottomRight: {1, 1},
 }
 
 func findDirection(p Points) DirectEnum {
@@ -214,11 +214,11 @@ func getDirection(side SideEnum, direction DirectEnum) DirectEnum {
 }
 
 func checkBorders(x, y int, config Config) bool {
-	if x <= 0 || y <= 0 {
+	if x < 0 || y < 0 {
 		fmt.Println("XY", x, y)
 		return true
 	}
-	if x >= config.Screen.Height || y >= config.Screen.Width {
+	if x > config.Screen.Height || y > config.Screen.Width {
 		fmt.Println("WI HEI", x, y, config.Screen.Width, config.Screen.Height)
 		return true
 	}
@@ -242,7 +242,7 @@ func caclulateDirection(x, y int, config Config, memo Memory) (Points, DirectEnu
 		nx, ny := val.x, val.y
 		// fmt.Println(nx, ny)
 		fmt.Println("----> ", nx, ny, nx+memo.x, ny+memo.y)
-		if nx+memo.x >= 0 && ny+memo.y >= 0 && nx+memo.x <= config.Screen.Height && ny+memo.y <= config.Screen.Width {
+		if nx+memo.x > 0 && ny+memo.y > 0 && nx+memo.x < config.Screen.Height-1 && ny+memo.y < config.Screen.Width-1 {
 			p := Points{nx + memo.x, ny + memo.y}
 			// newDirName := findDirection(Points{nx, ny})
 			newDirName := findDirection(val)
@@ -262,11 +262,14 @@ func BallAnimation(config Config, screenBuff *screenBuffer) {
 	gameMemory := Memory{Points{x, y}, (*screenBuff)[x][y], TopLeft}
 	for true {
 
-		// (*screenBuff)[gameMemory.x][gameMemory.y] = gameMemory.val
+		(*screenBuff)[gameMemory.x][gameMemory.y] = gameMemory.val
 		// newX := x + directionMap[gameMemory.direction].x
 		// newY := y + directionMap[gameMemory.direction].y
-		bX := x
-		bY := y
+		// bX := x
+		// bY := y
+
+		// nx := x + directionMap[gameMemory.direction].x
+		// ny := y + directionMap[gameMemory.direction].y
 		x += directionMap[gameMemory.direction].x
 		y += directionMap[gameMemory.direction].y
 
@@ -276,18 +279,28 @@ func BallAnimation(config Config, screenBuff *screenBuffer) {
 
 		// isBorder := checkBorders(x, y, config, *screenBuff)
 		if isBorder := checkBorders(x, y, config); isBorder == true {
-			_, newDir, _ := caclulateDirection(x, y, config, gameMemory)
+			point, newDir, _ := caclulateDirection(x, y, config, gameMemory)
 			newDirection = newDir
-			// fmt.Println("border ", isBorder, point)
+			fmt.Println("border ", isBorder, point, newDirection)
 			// x, y = point.x, point.y
 
-			x = bX + directionMap[newDirection].x
-			y = bY + directionMap[newDirection].y
+			// x = bX + directionMap[newDirection].x
+			// y = bY + directionMap[newDirection].y
+			x = point.x
+			y = point.y
+			// gameMemory = Memory{Points{x, y}, (*screenBuff)[point.x][point.y], newDirection}
+			gameMemory = Memory{Points{x, y}, (*screenBuff)[x][y], newDirection}
+		} else {
+			// x = nx
+			// y = ny
+			gameMemory = Memory{Points{x, y}, (*screenBuff)[x][y], gameMemory.direction}
 		}
-		gameMemory = Memory{Points{x, y}, (*screenBuff)[x][y], newDirection}
+		// gameMemory = Memory{Points{x, y}, (*screenBuff)[x][y], newDirection}
 		(*screenBuff)[x][y] = ball
+
 		// time.Sleep(1 * time.Second)
-		time.Sleep(750 * time.Millisecond)
+		// time.Sleep(750 * time.Millisecond)
+		time.Sleep(250 * time.Millisecond)
 	}
 }
 

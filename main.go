@@ -140,14 +140,14 @@ type DirectionXY struct {
 }
 
 var directionMap = map[DirectEnum]DirectionXY{
-	TopLeft:     {-1, -1},
-	Top:         {-1, 0},
-	TopRight:    {-1, 1},
-	MidLeft:     {0, -1},
-	MidRight:    {0, 1},
-	BottomLeft:  {1, -1},
-	Bottom:      {1, 0},
-	BottomRight: {1, 1},
+	TopLeft:     {-2, -2},
+	Top:         {-2, 0},
+	TopRight:    {-2, 2},
+	MidLeft:     {0, -2},
+	MidRight:    {0, 2},
+	BottomLeft:  {2, -2},
+	Bottom:      {2, 0},
+	BottomRight: {2, 2},
 }
 
 func getSideName(x, y int, config Config) SideEnum {

@@ -257,6 +257,8 @@ func caclulateDirection(x, y int, config Config, memo Memory) (Points, DirectEnu
 func BallAnimation(config Config, screenBuff *screenBuffer) {
 	x := config.Screen.Height / 2
 	y := config.Screen.Width / 2
+	(*screenBuff)[0][0] = rune('x')
+
 	gameMemory := Memory{Points{x, y}, (*screenBuff)[x][y], TopLeft}
 	for true {
 

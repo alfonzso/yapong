@@ -232,13 +232,8 @@ func checkBorders(x, y int, config Config) bool {
 }
 
 func caclulateDirection(x, y int, config Config, memo Memory) (Points, DirectEnum, error) {
-	// fmt.Println(x, y, DirectHelper[memo.direction])
-	// fmt.Println(x, y, memo.x, memo.y)
 	dirX := x - memo.x
 	dirY := y - memo.y
-	// fmt.Println(dirX, dirY)
-	// backDirX := dirX * -1
-	// backDirY := dirY * -1
 	possibleDirections := []Points{}
 	possibleDirections = append(possibleDirections, Points{dirX * -1, dirY})
 	possibleDirections = append(possibleDirections, Points{dirX, dirY * -1})
@@ -246,75 +241,44 @@ func caclulateDirection(x, y int, config Config, memo Memory) (Points, DirectEnu
 
 	for _, val := range possibleDirections {
 		nx, ny := val.x, val.y
-		// fmt.Println(nx, ny)
-		// fmt.Println("----> ", nx, ny, nx+memo.x, ny+memo.y)
 		if nx+memo.x > 0 && ny+memo.y > 0 && nx+memo.x < config.Screen.Height-1 && ny+memo.y < config.Screen.Width-1 {
 			p := Points{nx + memo.x, ny + memo.y}
-			// newDirName := findDirection(Points{nx, ny})
 			newDirName := findDirection(Points{nx, ny / 10})
 			if newDirName == 0 {
 				fmt.Println(val, memo, p)
 				os.Exit(1)
 			}
-			// fmt.Println("......", DirectHelper[newDirName])
-			// return val, newDirName, nil
 			return p, newDirName, nil
 		}
 	}
 	return Points{}, 0, errors.New("Cant find good direction")
 }
 
-func BallAnimation(config Config, screenBuff *screenBuffer) {
-	x := config.Screen.Height / 2
-	y := config.Screen.Width / 2
-	// (*screenBuff)[0][0] = rune('x')
+func BallAnimation(p Points, screenBuff *screenBuffer, memo *Memory) {
 
-	gameMemory := Memory{Points{x, y}, (*screenBuff)[x][y], TopLeft}
 	for true {
 
-		(*screenBuff)[gameMemory.x][gameMemory.y] = gameMemory.val
-		// newX := x + directionMap[gameMemory.direction].x
-		// newY := y + directionMap[gameMemory.direction].y
-		// bX := x
-		// bY := y
+		(*screenBuff)[memo.x][memo.y] = memo.val
 
-		// nx := x + directionMap[gameMemory.direction].x
-		// ny := y + directionMap[gameMemory.direction].y
-		// xxx := float64(x) + float64(directionMap[gameMemory.direction].x)*float64(1.5)
-		// yyy := float64(y) + float64(directionMap[gameMemory.direction].y)*float64(1.5)
-		// x = int(xxx)
-		// y = int(yyy)
+		p.x += directionMap[memo.direction].x
+		p.y += directionMap[memo.direction].y * 10
 
-		x += directionMap[gameMemory.direction].x
-		y += directionMap[gameMemory.direction].y * 10
+		// fmt.Println(x, y, memo.direction)
 
-		// fmt.Println(x, y, gameMemory.direction)
+		newDirection := memo.direction
 
-		newDirection := gameMemory.direction
-
-		// isBorder := checkBorders(x, y, config, *screenBuff)
-		if isBorder := checkBorders(x, y, config); isBorder == true {
-			point, newDir, _ := caclulateDirection(x, y, config, gameMemory)
+		if isBorder := checkBorders(p.x, p.y, config); isBorder == true {
+			point, newDir, _ := caclulateDirection(p.x, p.y, config, *memo)
 			newDirection = newDir
-			// fmt.Println("border ", isBorder, point, newDirection)
-			// x, y = point.x, point.y
-
-			// x = bX + directionMap[newDirection].x
-			// y = bY + directionMap[newDirection].y
-			x = point.x
-			y = point.y
-			// gameMemory = Memory{Points{x, y}, (*screenBuff)[point.x][point.y], newDirection}
-			gameMemory = Memory{Points{x, y}, (*screenBuff)[x][y], newDirection}
+			p.x = point.x
+			p.y = point.y
+			*memo = Memory{p, PointsToScreenBuff(p, *screenBuff), newDirection}
 		} else {
-			// x = nx
-			// y = ny
-			gameMemory = Memory{Points{x, y}, (*screenBuff)[x][y], gameMemory.direction}
+			// *memo = Memory{p, (*screenBuff)[p.x][p.y], memo.direction}
+			*memo = Memory{p, PointsToScreenBuff(p, *screenBuff), memo.direction}
 		}
-		// gameMemory = Memory{Points{x, y}, (*screenBuff)[x][y], newDirection}
-		(*screenBuff)[x][y] = ball
+		(*screenBuff)[p.x][p.y] = ball
 
-		// time.Sleep(1 * time.Second)
-		// time.Sleep(750 * time.Millisecond)
 		time.Sleep(time.Duration(speedMS) * time.Millisecond)
 	}
 }
@@ -402,6 +366,10 @@ func AnimateBall(config Config, screenBuff *screenBuffer) {
 	}
 }
 
+func PointsToScreenBuff(p Points, screenBuff screenBuffer) rune {
+	return screenBuff[p.x][p.y]
+}
+
 func main() {
 	var screenBuff = screenBuffer{}
 	config = NewConfig()
@@ -410,11 +378,15 @@ func main() {
 	InitLevel(&screenBuff)
 	PrintLevel(screenBuff)
 
+	p := Points{config.Screen.Height / 2, config.Screen.Width / 2}
+	// gameMemory := Memory{Points{x, y}, (*screenBuff)[x][y], TopLeft}
+	gameMemory := Memory{p, PointsToScreenBuff(p, screenBuff), TopLeft}
+
 	go Animation(&screenBuff)
 
 	// tmpRune := BeforeStep{}
 	// go AnimateBall(config, &screenBuff)
-	go BallAnimation(config, &screenBuff)
+	go BallAnimation(config, &screenBuff, &gameMemory)
 	// for x, scrn := range screenBuff {
 	// 	for y := range scrn {
 	// 		// fmt.Print(string(row))

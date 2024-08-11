@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"golang.org/x/term"
@@ -13,7 +14,7 @@ var half = rune('¦')
 var ball = rune('■')
 
 var config = Config{}
-var speedMS = 75
+var speedMS = 100
 
 type screenLine = []rune
 type screenBuffer = []screenLine
@@ -152,7 +153,12 @@ var directionMap = map[DirectEnum]Points{
 }
 
 func findDirection(p Points) DirectEnum {
+	// isXNegative := p.x <= 0
+	// isYNegative := p.y <= 0
 	for idx, val := range directionMap {
+		// isValXNeg := val.x <= 0
+		// isValYNeg := val.y <= 0
+		// if isXNegative == isValXNeg && isYNegative == isValYNeg {
 		if p == val {
 			return idx
 		}
@@ -215,11 +221,11 @@ func getDirection(side SideEnum, direction DirectEnum) DirectEnum {
 
 func checkBorders(x, y int, config Config) bool {
 	if x < 0 || y < 0 {
-		fmt.Println("XY", x, y)
+		// fmt.Println("XY", x, y)
 		return true
 	}
 	if x > config.Screen.Height-1 || y > config.Screen.Width-1 {
-		fmt.Println("WI HEI", x, y, config.Screen.Width, config.Screen.Height)
+		// fmt.Println("WI HEI", x, y, config.Screen.Width, config.Screen.Height)
 		return true
 	}
 	return false
@@ -241,12 +247,16 @@ func caclulateDirection(x, y int, config Config, memo Memory) (Points, DirectEnu
 	for _, val := range possibleDirections {
 		nx, ny := val.x, val.y
 		// fmt.Println(nx, ny)
-		fmt.Println("----> ", nx, ny, nx+memo.x, ny+memo.y)
+		// fmt.Println("----> ", nx, ny, nx+memo.x, ny+memo.y)
 		if nx+memo.x > 0 && ny+memo.y > 0 && nx+memo.x < config.Screen.Height-1 && ny+memo.y < config.Screen.Width-1 {
 			p := Points{nx + memo.x, ny + memo.y}
 			// newDirName := findDirection(Points{nx, ny})
-			newDirName := findDirection(val)
-			fmt.Println("......", DirectHelper[newDirName])
+			newDirName := findDirection(Points{nx, ny / 10})
+			if newDirName == 0 {
+				fmt.Println(val, memo, p)
+				os.Exit(1)
+			}
+			// fmt.Println("......", DirectHelper[newDirName])
 			// return val, newDirName, nil
 			return p, newDirName, nil
 		}
@@ -257,7 +267,7 @@ func caclulateDirection(x, y int, config Config, memo Memory) (Points, DirectEnu
 func BallAnimation(config Config, screenBuff *screenBuffer) {
 	x := config.Screen.Height / 2
 	y := config.Screen.Width / 2
-	(*screenBuff)[0][0] = rune('x')
+	// (*screenBuff)[0][0] = rune('x')
 
 	gameMemory := Memory{Points{x, y}, (*screenBuff)[x][y], TopLeft}
 	for true {
@@ -270,8 +280,13 @@ func BallAnimation(config Config, screenBuff *screenBuffer) {
 
 		// nx := x + directionMap[gameMemory.direction].x
 		// ny := y + directionMap[gameMemory.direction].y
+		// xxx := float64(x) + float64(directionMap[gameMemory.direction].x)*float64(1.5)
+		// yyy := float64(y) + float64(directionMap[gameMemory.direction].y)*float64(1.5)
+		// x = int(xxx)
+		// y = int(yyy)
+
 		x += directionMap[gameMemory.direction].x
-		y += directionMap[gameMemory.direction].y
+		y += directionMap[gameMemory.direction].y * 10
 
 		// fmt.Println(x, y, gameMemory.direction)
 
@@ -281,7 +296,7 @@ func BallAnimation(config Config, screenBuff *screenBuffer) {
 		if isBorder := checkBorders(x, y, config); isBorder == true {
 			point, newDir, _ := caclulateDirection(x, y, config, gameMemory)
 			newDirection = newDir
-			fmt.Println("border ", isBorder, point, newDirection)
+			// fmt.Println("border ", isBorder, point, newDirection)
 			// x, y = point.x, point.y
 
 			// x = bX + directionMap[newDirection].x

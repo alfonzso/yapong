@@ -13,6 +13,7 @@ var half = rune('¦')
 var ball = rune('■')
 
 var config = Config{}
+var speedMS = 75
 
 type screenLine = []rune
 type screenBuffer = []screenLine
@@ -74,7 +75,6 @@ func PrintLevel(screenBuff screenBuffer) {
 		fmt.Println()
 	}
 }
-
 func Animation(screenBuff *screenBuffer) {
 	for true {
 		// ClearLevel(*screenBuff)
@@ -82,7 +82,7 @@ func Animation(screenBuff *screenBuffer) {
 		fmt.Print("\033[2J")
 		PrintLevel(*screenBuff)
 		// time.Sleep(1 * time.Second)
-		time.Sleep(125 * time.Millisecond)
+		time.Sleep(time.Duration(speedMS) * time.Millisecond)
 	}
 }
 
@@ -300,7 +300,7 @@ func BallAnimation(config Config, screenBuff *screenBuffer) {
 
 		// time.Sleep(1 * time.Second)
 		// time.Sleep(750 * time.Millisecond)
-		time.Sleep(250 * time.Millisecond)
+		time.Sleep(time.Duration(speedMS) * time.Millisecond)
 	}
 }
 

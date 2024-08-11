@@ -1,11 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/MarinX/keylogger"
+	"github.com/eiannone/keyboard"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/term"
 )
 
@@ -68,8 +72,8 @@ func ClearLevel(screenBuff screenBuffer) {
 		fmt.Println()
 	}
 }
-func PrintLevel(screenBuff screenBuffer) {
-	for _, scrn := range screenBuff {
+func PrintLevel(screenBuff *screenBuffer) {
+	for _, scrn := range *screenBuff {
 		for _, row := range scrn {
 			fmt.Print(string(row))
 		}
@@ -81,7 +85,7 @@ func Animation(screenBuff *screenBuffer) {
 		// ClearLevel(*screenBuff)
 		fmt.Print("\033[H")
 		fmt.Print("\033[2J")
-		PrintLevel(*screenBuff)
+		PrintLevel(screenBuff)
 		// time.Sleep(1 * time.Second)
 		time.Sleep(time.Duration(speedMS) * time.Millisecond)
 	}
@@ -268,7 +272,74 @@ func DrawSideBalls(p Points, config Config, screenBuff *screenBuffer, memo *Memo
 	}
 }
 
-func BallAnimation(p Points, screenBuff *screenBuffer, memo *Memory) {
+// def line_intersection(line1, line2):
+//     xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
+//     ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
+//
+//     def det(a, b):
+//         return a[0] * b[1] - a[1] * b[0]
+//
+//     div = det(xdiff, ydiff)
+//     if div == 0:
+//        raise Exception('lines do not intersect')
+//
+//     d = (det(*line1), det(*line2))
+//     x = det(d, xdiff) / div
+//     y = det(d, ydiff) / div
+//     return x, y
+
+func isLinesIntersect(A []Points, B []Points) bool {
+	xdiff := Points{A[0].x - A[1].x, B[0].x - B[1].x}
+	ydiff := Points{A[0].y - A[1].y, B[0].y - B[1].y}
+
+	det := func(a Points, b Points) int {
+		return a.x*b.y - a.y - b.x
+	}
+	div := det(xdiff, ydiff)
+	if div == 0 {
+		return false
+	}
+	return true
+	// d := Points{det(A[0], A[1]), det(B[0], B[1])}
+	// x := det(d, xdiff) / div
+	// y := det(d, ydiff) / div
+	// return x, y
+}
+
+func direction(p, q, r Points) int {
+	return (q.y-p.y)*(r.x-q.x) - (q.x-p.x)*(r.y-q.y)
+}
+
+func areCollinearAndOverlapping(a1, b1, a2, b2 Points) bool {
+	// # Check if the line segments are collinear
+	if direction(a1, b1, a2) == 0 {
+		// # Check if the line segments overlap
+		if a2.x <= max(a1.x, b1.x) && a2.x >= min(a1.x, b1.x) && a2.y <= max(a1.y, b1.y) && a2.y >= min(a1.y, b1.y) {
+			return true
+		}
+	}
+	return false
+}
+
+func isintersect(a1, b1, a2, b2 Points) bool {
+	// Compute the directions of the four line segments
+	d1 := direction(a1, b1, a2)
+	d2 := direction(a1, b1, b2)
+	d3 := direction(a2, b2, a1)
+	d4 := direction(a2, b2, b1)
+
+	// Check if the two line segments intersect
+	if ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)) {
+		return true
+	}
+	// Check if the line segments are collinear && overlapping
+	if areCollinearAndOverlapping(a1, b1, a2, b2) || areCollinearAndOverlapping(a2, b2, a1, b1) {
+		return true
+	}
+	return false
+}
+
+func BallAnimation(p Points, screenBuff *screenBuffer, memo *Memory, pA, pB Points) {
 
 	for true {
 
@@ -280,6 +351,18 @@ func BallAnimation(p Points, screenBuff *screenBuffer, memo *Memory) {
 		// fmt.Println(x, y, memo.direction)
 
 		newDirection := memo.direction
+
+		// x -> 20 -- 30
+		// y -> 1  -- 2
+		// playaLine := []Points{{15, 1}, {25, 1}}
+		ballLine := []Points{{memo.x, memo.y}, {p.x, p.y}}
+
+		res := isintersect(pA, pB, Points{memo.x, memo.y}, Points{p.x, p.y})
+		// res := isLinesIntersect(ballLine, playaLine)
+		fmt.Println("..........................", res, pA, pB, ballLine)
+		if res {
+			os.Exit(1)
+		}
 
 		if isBorder := checkBorders(p.x, p.y, config); isBorder == true {
 			point, newDir, _ := caclulateDirection(p.x, p.y, config, *memo)
@@ -298,16 +381,109 @@ func BallAnimation(p Points, screenBuff *screenBuffer, memo *Memory) {
 	}
 }
 
-func drawPlayerBlock(screenBuff *screenBuffer) {
-	for x := 0; x < 10; x++ {
+func KeyBoardHandler() {
+	// find keyboard device, does not require a root permission
+	keyboard := keylogger.FindKeyboardDevice()
+
+	logrus.Println("Found a keyboard at", keyboard)
+	// init keylogger with keyboard
+	k, err := keylogger.New(keyboard)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	defer k.Close()
+
+	logrus.Println("reading ... ...............")
+	events := k.Read()
+	logrus.Println("reading 1... ...............", events)
+
+	// range of events
+	for e := range events {
+		logrus.Println(e)
+		switch e.Type {
+		// EvKey is used to describe state changes of keyboards, buttons, or other key-like devices.
+		// check the input_event.go for more events
+		case keylogger.EvKey:
+
+			// if the state of key is pressed
+			if e.KeyPress() {
+				logrus.Println("[event] press key ", e.KeyString())
+			}
+
+			// if the state of key is released
+			if e.KeyRelease() {
+				logrus.Println("[event] release key ", e.KeyString())
+			}
+
+			break
+		}
+	}
+	logrus.Println("exited ...............")
+}
+
+func cleanupPlayer(screenBuff *screenBuffer) {
+	xLen := len(*screenBuff)
+	for i := 0; i < xLen; i++ {
 		for y := 0; y < 2; y++ {
-			(*screenBuff)[x+10][y] = block
+			(*screenBuff)[i][y] = rune(' ')
 		}
 	}
 }
 
+func drawPlayerBlock(screenBuff *screenBuffer, ws int) (Points, Points) {
+	cleanupPlayer(screenBuff)
+	pFirstIndex := 10 + ws
+	pLen := 5
+	xArray := []int{}
+	for x := pFirstIndex; x < pFirstIndex+pLen; x++ {
+		for y := 0; y < 2; y++ {
+			(*screenBuff)[x][y] = block
+			xArray = append(xArray, x)
+		}
+	}
+
+	return Points{xArray[0], 1}, Points{xArray[len(xArray)-1], 1}
+}
+
 func PointsToScreenBuff(p Points, screenBuff screenBuffer) rune {
 	return screenBuff[p.x][p.y]
+}
+
+var reader = bufio.NewReader(os.Stdin)
+
+func readKey(input chan rune) {
+	for true {
+		char, _, err := keyboard.GetSingleKey()
+		if err != nil {
+			panic(err)
+		}
+		if char == rune('q') {
+			os.Exit(1)
+		}
+		if char == rune('w') || char == rune('s') {
+			input <- char
+		}
+		if char == rune('r') {
+			fmt.Print("\033[H")
+			fmt.Print("\033[2J")
+		}
+		// fmt.Printf("You pressed: %q\r\n", char)
+	}
+	// scanner := bufio.NewScanner(os.Stdin)
+	// logrus.Println("kekek")
+	// for scanner.Scan() {
+	// 	fmt.Printf("--->>> %s", scanner.Text())
+	// }
+	// return
+	// for true {
+	// 	char, _, err := reader.ReadRune()
+	// 	if err != nil {
+	// 		logrus.Fatal(err)
+	// 	}
+	// 	input <- char
+	// }
 }
 
 func main() {
@@ -316,14 +492,36 @@ func main() {
 	GetSize(&config)
 
 	InitLevel(&screenBuff)
-	PrintLevel(screenBuff)
-	drawPlayerBlock(&screenBuff)
+	PrintLevel(&screenBuff)
+	pPozA, pPozB := drawPlayerBlock(&screenBuff, 0)
 
 	p := Points{config.Screen.Height / 2, config.Screen.Width / 2}
 	gameMemory := Memory{p, PointsToScreenBuff(p, screenBuff), TopLeft}
 
 	go Animation(&screenBuff)
 
-	go BallAnimation(p, &screenBuff, &gameMemory)
+	// go BallAnimation(p, &screenBuff, &gameMemory, pPozA, pPozB)
+	logrus.Println(pPozA, pPozB, gameMemory)
+
+	// go KeyBoardHandler()
+	input := make(chan rune, 1)
+	fmt.Println("Checking keyboard input...")
+	go readKey(input)
+	ws := 0
+	for true {
+		select {
+		case i := <-input:
+			if i == rune('w') {
+				ws += -1
+			}
+			if i == rune('s') {
+				ws += 1
+			}
+			pPozA, pPozB = drawPlayerBlock(&screenBuff, ws)
+			// fmt.Printf("Input : %v %d\n", i, ws)
+			// case <-time.After(5000 * time.Millisecond):
+			// 	fmt.Println("Time out!")
+		}
+	}
 	time.Sleep(25 * time.Minute)
 }

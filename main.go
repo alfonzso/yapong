@@ -218,7 +218,7 @@ func checkBorders(x, y int, config Config) bool {
 		fmt.Println("XY", x, y)
 		return true
 	}
-	if x > config.Screen.Height || y > config.Screen.Width {
+	if x > config.Screen.Height-1 || y > config.Screen.Width-1 {
 		fmt.Println("WI HEI", x, y, config.Screen.Width, config.Screen.Height)
 		return true
 	}

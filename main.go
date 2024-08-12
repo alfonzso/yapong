@@ -7,12 +7,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/MarinX/keylogger"
 	"github.com/eiannone/keyboard"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/term"
 )
 
+var reader = bufio.NewReader(os.Stdin)
 var block = rune('█')
 var half = rune('¦')
 var ball = rune('■')
@@ -161,12 +160,7 @@ var directionMap = map[DirectEnum]Points{
 }
 
 func findDirection(p Points) DirectEnum {
-	// isXNegative := p.x <= 0
-	// isYNegative := p.y <= 0
 	for idx, val := range directionMap {
-		// isValXNeg := val.x <= 0
-		// isValYNeg := val.y <= 0
-		// if isXNegative == isValXNeg && isYNegative == isValYNeg {
 		if p == val {
 			return idx
 		}
@@ -174,66 +168,11 @@ func findDirection(p Points) DirectEnum {
 	return 0
 }
 
-// TopLeft:     {-4, -4},
-// TopRight:    {-4, 4},
-// BottomLeft:  {4, -4},
-// BottomRight: {4, 4},
-
-func getSideName(x, y int, config Config) SideEnum {
-	if x <= 2 {
-		return TopSide
-	}
-	if x >= config.Screen.Height-1 {
-		return BottomSide
-	}
-	if y <= 2 {
-		return LeftSide
-	}
-	if y >= config.Screen.Width-1 {
-		return RightSide
-	}
-	return DefaultSE
-}
-
-func getDirection(side SideEnum, direction DirectEnum) DirectEnum {
-	if side == TopSide && direction == TopRight {
-		return BottomRight
-	}
-	if side == RightSide && direction == BottomRight {
-		return BottomLeft
-	}
-	if side == BottomSide && direction == BottomLeft {
-		return TopLeft
-	}
-	if side == TopSide && direction == TopLeft {
-		return BottomLeft
-	}
-	if side == LeftSide && direction == BottomLeft {
-		return BottomRight
-	}
-	if side == BottomSide && direction == BottomRight {
-		return TopRight
-	}
-	if side == LeftSide && direction == TopLeft {
-		return TopRight
-	}
-	if side == RightSide && direction == TopRight {
-		return TopLeft
-	}
-	if side == TopSide && direction == BottomLeft {
-		return TopLeft
-	}
-	fmt.Println(SideHelper[side], DirectHelper[direction])
-	return DefaultDE
-}
-
 func checkBorders(x, y int, config Config) bool {
 	if x < 0 || y < 0 {
-		// fmt.Println("XY", x, y)
 		return true
 	}
 	if x > config.Screen.Height-1 || y > config.Screen.Width-1 {
-		// fmt.Println("WI HEI", x, y, config.Screen.Width, config.Screen.Height)
 		return true
 	}
 	return false
@@ -249,6 +188,7 @@ func caclulateDirection(x, y int, config Config, memo Memory) (Points, DirectEnu
 
 	for _, val := range possibleDirections {
 		nx, ny := val.x, val.y
+		// find positive value for screenBuffer, this is the reason we want to change direction ...
 		if nx+memo.x > 0 && ny+memo.y > 0 && nx+memo.x < config.Screen.Height-1 && ny+memo.y < config.Screen.Width-1 {
 			p := Points{nx + memo.x, ny + memo.y}
 			newDirName := findDirection(Points{nx, ny / 10})
@@ -274,40 +214,6 @@ func DrawSideBalls(p Points, config Config, screenBuff *screenBuffer, memo *Memo
 		time.Sleep(time.Duration(speedMS) * time.Millisecond)
 		(*screenBuff)[memo.x][newY] = memo.val
 	}
-}
-
-// def line_intersection(line1, line2):
-//     xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
-//     ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
-//
-//     def det(a, b):
-//         return a[0] * b[1] - a[1] * b[0]
-//
-//     div = det(xdiff, ydiff)
-//     if div == 0:
-//        raise Exception('lines do not intersect')
-//
-//     d = (det(*line1), det(*line2))
-//     x = det(d, xdiff) / div
-//     y = det(d, ydiff) / div
-//     return x, y
-
-func isLinesIntersect(A []Points, B []Points) bool {
-	xdiff := Points{A[0].x - A[1].x, B[0].x - B[1].x}
-	ydiff := Points{A[0].y - A[1].y, B[0].y - B[1].y}
-
-	det := func(a Points, b Points) int {
-		return a.x*b.y - a.y - b.x
-	}
-	div := det(xdiff, ydiff)
-	if div == 0 {
-		return false
-	}
-	return true
-	// d := Points{det(A[0], A[1]), det(B[0], B[1])}
-	// x := det(d, xdiff) / div
-	// y := det(d, ydiff) / div
-	// return x, y
 }
 
 func direction(p, q, r Points) int {
@@ -377,48 +283,6 @@ func BallAnimation(p Points, screenBuff *screenBuffer, memo *Memory, pAX, pAY, p
 	}
 }
 
-func KeyBoardHandler() {
-	// find keyboard device, does not require a root permission
-	keyboard := keylogger.FindKeyboardDevice()
-
-	logrus.Println("Found a keyboard at", keyboard)
-	// init keylogger with keyboard
-	k, err := keylogger.New(keyboard)
-	if err != nil {
-		logrus.Error(err)
-		return
-	}
-
-	defer k.Close()
-
-	logrus.Println("reading ... ...............")
-	events := k.Read()
-	logrus.Println("reading 1... ...............", events)
-
-	// range of events
-	for e := range events {
-		logrus.Println(e)
-		switch e.Type {
-		// EvKey is used to describe state changes of keyboards, buttons, or other key-like devices.
-		// check the input_event.go for more events
-		case keylogger.EvKey:
-
-			// if the state of key is pressed
-			if e.KeyPress() {
-				logrus.Println("[event] press key ", e.KeyString())
-			}
-
-			// if the state of key is released
-			if e.KeyRelease() {
-				logrus.Println("[event] release key ", e.KeyString())
-			}
-
-			break
-		}
-	}
-	logrus.Println("exited ...............")
-}
-
 func cleanupPlayer(screenBuff *screenBuffer, playa int) {
 	xLen := len(*screenBuff)
 	for i := 0; i < xLen; i++ {
@@ -449,8 +313,6 @@ func PointsToScreenBuff(p Points, screenBuff screenBuffer) rune {
 	return screenBuff[p.x][p.y]
 }
 
-var reader = bufio.NewReader(os.Stdin)
-
 func readKey(input chan rune) {
 	for true {
 		char, _, err := keyboard.GetSingleKey()
@@ -458,7 +320,7 @@ func readKey(input chan rune) {
 			panic(err)
 		}
 		if char == rune('q') {
-			os.Exit(1)
+			os.Exit(0)
 		}
 		if char == rune('w') || char == rune('s') || char == rune('i') || char == rune('k') {
 			input <- char
@@ -470,25 +332,9 @@ func readKey(input chan rune) {
 	}
 }
 
-func main() {
-	var screenBuff = screenBuffer{}
-	ws, ik := 10, 10
+var ws, ik = 10, 10
 
-	config = NewConfig()
-	GetSize(&config)
-
-	InitLevel(&screenBuff)
-	PrintLevel(&screenBuff)
-	pAPozX, pAPozY := drawPlayerBlock(&screenBuff, ws, true)
-	pBPozX, pBPozY := drawPlayerBlock(&screenBuff, ik, false)
-
-	p := Points{config.Screen.Height / 2, config.Screen.Width / 2}
-	gameMemory := Memory{p, PointsToScreenBuff(p, screenBuff), TopLeft}
-
-	go Animation(&screenBuff)
-
-	go BallAnimation(p, &screenBuff, &gameMemory, &pAPozX, &pAPozY, &pBPozX, &pBPozY)
-
+func HandlePlayerMovements(screenBuff *screenBuffer, pAPozX, pAPozY, pBPozX, pBPozY *Points) {
 	input := make(chan rune, 1)
 	go readKey(input)
 	for true {
@@ -506,9 +352,28 @@ func main() {
 			if i == rune('k') && ik < config.Screen.Height-5 {
 				ik += 2
 			}
-			pAPozX, pAPozY = drawPlayerBlock(&screenBuff, ws, true)
-			pBPozX, pBPozY = drawPlayerBlock(&screenBuff, ik, false)
+			*pAPozX, *pAPozY = drawPlayerBlock(screenBuff, ws, true)
+			*pBPozX, *pBPozY = drawPlayerBlock(screenBuff, ik, false)
 		}
 	}
+}
+
+func main() {
+	var screenBuff = screenBuffer{}
+
+	config = NewConfig()
+	GetSize(&config)
+
+	InitLevel(&screenBuff)
+	PrintLevel(&screenBuff)
+	pAPozX, pAPozY := drawPlayerBlock(&screenBuff, ws, true)
+	pBPozX, pBPozY := drawPlayerBlock(&screenBuff, ik, false)
+
+	p := Points{config.Screen.Height / 2, config.Screen.Width / 2}
+	gameMemory := Memory{p, PointsToScreenBuff(p, screenBuff), TopLeft}
+
+	go Animation(&screenBuff)
+	go BallAnimation(p, &screenBuff, &gameMemory, &pAPozX, &pAPozY, &pBPozX, &pBPozY)
+	go HandlePlayerMovements(&screenBuff, &pAPozX, &pAPozY, &pBPozX, &pBPozY)
 	time.Sleep(25 * time.Minute)
 }

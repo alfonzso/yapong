@@ -43,8 +43,8 @@ func GetSize(c *Config) {
 	if err != nil {
 		return
 	}
-	c.Screen.Width = (width - 1) // / 2
-	c.Screen.Height = height / 2
+	c.Screen.Width = (width - 1)
+	c.Screen.Height = (height - 1) / 2
 }
 
 func InitLevel(screenBuff *screenBuffer) {

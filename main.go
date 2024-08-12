@@ -343,7 +343,7 @@ func isintersect(a1, b1, a2, b2 Points) bool {
 	return false
 }
 
-func BallAnimation(p Points, screenBuff *screenBuffer, memo *Memory, pA, pB *Points) {
+func BallAnimation(p Points, screenBuff *screenBuffer, memo *Memory, pAX, pAY, pBX, pBY *Points) {
 
 	for true {
 
@@ -359,12 +359,13 @@ func BallAnimation(p Points, screenBuff *screenBuffer, memo *Memory, pA, pB *Poi
 		// x -> 20 -- 30
 		// y -> 1  -- 2
 		// playaLine := []Points{{15, 1}, {25, 1}}
-		// ballLine := []Points{{memo.x, memo.y}, {p.x, p.y}}
+		ballLine := []Points{{memo.x, memo.y}, {p.x, p.y}}
 
-		res := isintersect(*pA, *pB, Points{memo.x, memo.y}, Points{p.x, p.y})
+		AInter := isintersect(*pAX, *pAY, Points{memo.x, memo.y}, Points{p.x, p.y})
+		BInter := isintersect(*pBX, *pBY, Points{memo.x, memo.y}, Points{p.x, p.y})
 		// res := isLinesIntersect(ballLine, playaLine)
-		// fmt.Println("..........................", res, pA, pB, ballLine)
-		if res {
+		fmt.Println("..........................", pBX, pBY, ballLine)
+		if AInter || BInter {
 			// os.Exit(1)
 			time.Sleep(5 * time.Second)
 		}
@@ -428,31 +429,31 @@ func KeyBoardHandler() {
 	logrus.Println("exited ...............")
 }
 
-func cleanupPlayer(screenBuff *screenBuffer) {
+func cleanupPlayer(screenBuff *screenBuffer, playa int) {
 	xLen := len(*screenBuff)
 	for i := 0; i < xLen; i++ {
-		for y := 0; y < 2; y++ {
+		for y := playa; y < playa+2; y++ {
 			(*screenBuff)[i][y] = rune(' ')
 		}
 	}
 }
 
-func drawPlayerBlock(screenBuff *screenBuffer, ws int) (Points, Points) {
-	cleanupPlayer(screenBuff)
-	// pFirstIndex := 10 + ws
+func drawPlayerBlock(screenBuff *screenBuffer, ws int, isAPlayer bool) (Points, Points) {
 	pFirstIndex := ws
 	pLen := 5
-	// xArray := []int{}
+
+	player := 0
+	if !isAPlayer {
+		player = len((*screenBuff)[0]) - 2
+	}
+	cleanupPlayer(screenBuff, player)
 	for x := pFirstIndex; x < pFirstIndex+pLen; x++ {
-		// for y := 0; y < 2; y++ {
-		(*screenBuff)[x][0] = block
-		(*screenBuff)[x][1] = block
-		// xArray = append(xArray, x)
-		// }
+		for y := player; y < player+2; y++ {
+			(*screenBuff)[x][y] = block
+		}
 	}
 
-	// return Points{xArray[0], 1}, Points{xArray[len(xArray)-1], 1}
-	return Points{pFirstIndex, 1}, Points{pFirstIndex + pLen, 1}
+	return Points{pFirstIndex, player + 2}, Points{pFirstIndex + pLen, player + 2}
 }
 
 func PointsToScreenBuff(p Points, screenBuff screenBuffer) rune {
@@ -470,7 +471,7 @@ func readKey(input chan rune) {
 		if char == rune('q') {
 			os.Exit(1)
 		}
-		if char == rune('w') || char == rune('s') {
+		if char == rune('w') || char == rune('s') || char == rune('i') || char == rune('k') {
 			input <- char
 		}
 		if char == rune('r') {
@@ -496,20 +497,22 @@ func readKey(input chan rune) {
 
 func main() {
 	var screenBuff = screenBuffer{}
-	ws := 10
+	ws, ik := 10, 10
+
 	config = NewConfig()
 	GetSize(&config)
 
 	InitLevel(&screenBuff)
 	PrintLevel(&screenBuff)
-	pPozA, pPozB := drawPlayerBlock(&screenBuff, ws)
+	pAPozX, pAPozY := drawPlayerBlock(&screenBuff, ws, true)
+	pBPozX, pBPozY := drawPlayerBlock(&screenBuff, ik, false)
 
 	p := Points{config.Screen.Height / 2, config.Screen.Width / 2}
 	gameMemory := Memory{p, PointsToScreenBuff(p, screenBuff), TopLeft}
 
 	go Animation(&screenBuff)
 
-	go BallAnimation(p, &screenBuff, &gameMemory, &pPozA, &pPozB)
+	go BallAnimation(p, &screenBuff, &gameMemory, &pAPozX, &pAPozY, &pBPozX, &pBPozY)
 	// logrus.Println(pPozA, pPozB, gameMemory)
 
 	// go KeyBoardHandler()
@@ -525,7 +528,14 @@ func main() {
 			if i == rune('s') && ws < config.Screen.Height-5 {
 				ws += 2
 			}
-			pPozA, pPozB = drawPlayerBlock(&screenBuff, ws)
+			if i == rune('i') && ik > 0 {
+				ik += -2
+			}
+			if i == rune('k') && ik < config.Screen.Height-5 {
+				ik += 2
+			}
+			pAPozX, pAPozY = drawPlayerBlock(&screenBuff, ws, true)
+			pBPozX, pBPozY = drawPlayerBlock(&screenBuff, ik, false)
 		}
 	}
 	time.Sleep(25 * time.Minute)

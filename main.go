@@ -18,7 +18,7 @@ var half = rune('¦')
 var ball = rune('■')
 
 var config = Config{}
-var speedMS = 100
+var speedMS = 150
 
 type screenLine = []rune
 type screenBuffer = []screenLine
@@ -44,7 +44,7 @@ func GetSize(c *Config) {
 	if err != nil {
 		return
 	}
-	c.Screen.Width = width - 1
+	c.Screen.Width = (width - 1) // / 2
 	c.Screen.Height = height / 2
 }
 
@@ -57,7 +57,11 @@ func InitLevel(screenBuff *screenBuffer) {
 			if w == halfBlockPlace {
 				tmpArr = append(tmpArr, half)
 			} else {
-				tmpArr = append(tmpArr, ' ')
+				ch := ' '
+				if h == 0 || h == config.Screen.Height-1 {
+					ch = '='
+				}
+				tmpArr = append(tmpArr, ch)
 			}
 		}
 		*screenBuff = append(*screenBuff, tmpArr)
@@ -339,7 +343,7 @@ func isintersect(a1, b1, a2, b2 Points) bool {
 	return false
 }
 
-func BallAnimation(p Points, screenBuff *screenBuffer, memo *Memory, pA, pB Points) {
+func BallAnimation(p Points, screenBuff *screenBuffer, memo *Memory, pA, pB *Points) {
 
 	for true {
 
@@ -355,13 +359,14 @@ func BallAnimation(p Points, screenBuff *screenBuffer, memo *Memory, pA, pB Poin
 		// x -> 20 -- 30
 		// y -> 1  -- 2
 		// playaLine := []Points{{15, 1}, {25, 1}}
-		ballLine := []Points{{memo.x, memo.y}, {p.x, p.y}}
+		// ballLine := []Points{{memo.x, memo.y}, {p.x, p.y}}
 
-		res := isintersect(pA, pB, Points{memo.x, memo.y}, Points{p.x, p.y})
+		res := isintersect(*pA, *pB, Points{memo.x, memo.y}, Points{p.x, p.y})
 		// res := isLinesIntersect(ballLine, playaLine)
-		fmt.Println("..........................", res, pA, pB, ballLine)
+		// fmt.Println("..........................", res, pA, pB, ballLine)
 		if res {
-			os.Exit(1)
+			// os.Exit(1)
+			time.Sleep(5 * time.Second)
 		}
 
 		if isBorder := checkBorders(p.x, p.y, config); isBorder == true {
@@ -434,17 +439,19 @@ func cleanupPlayer(screenBuff *screenBuffer) {
 
 func drawPlayerBlock(screenBuff *screenBuffer, ws int) (Points, Points) {
 	cleanupPlayer(screenBuff)
-	pFirstIndex := 10 + ws
+	// pFirstIndex := 10 + ws
+	pFirstIndex := ws
 	pLen := 5
-	xArray := []int{}
+	// xArray := []int{}
 	for x := pFirstIndex; x < pFirstIndex+pLen; x++ {
 		for y := 0; y < 2; y++ {
 			(*screenBuff)[x][y] = block
-			xArray = append(xArray, x)
+			// xArray = append(xArray, x)
 		}
 	}
 
-	return Points{xArray[0], 1}, Points{xArray[len(xArray)-1], 1}
+	// return Points{xArray[0], 1}, Points{xArray[len(xArray)-1], 1}
+	return Points{pFirstIndex, 1}, Points{pFirstIndex + pLen, 1}
 }
 
 func PointsToScreenBuff(p Points, screenBuff screenBuffer) rune {
@@ -488,39 +495,36 @@ func readKey(input chan rune) {
 
 func main() {
 	var screenBuff = screenBuffer{}
+	ws := 10
 	config = NewConfig()
 	GetSize(&config)
 
 	InitLevel(&screenBuff)
 	PrintLevel(&screenBuff)
-	pPozA, pPozB := drawPlayerBlock(&screenBuff, 0)
+	pPozA, pPozB := drawPlayerBlock(&screenBuff, ws)
 
 	p := Points{config.Screen.Height / 2, config.Screen.Width / 2}
 	gameMemory := Memory{p, PointsToScreenBuff(p, screenBuff), TopLeft}
 
 	go Animation(&screenBuff)
 
-	// go BallAnimation(p, &screenBuff, &gameMemory, pPozA, pPozB)
-	logrus.Println(pPozA, pPozB, gameMemory)
+	go BallAnimation(p, &screenBuff, &gameMemory, &pPozA, &pPozB)
+	// logrus.Println(pPozA, pPozB, gameMemory)
 
 	// go KeyBoardHandler()
 	input := make(chan rune, 1)
-	fmt.Println("Checking keyboard input...")
+	// fmt.Println("Checking keyboard input...")
 	go readKey(input)
-	ws := 0
 	for true {
 		select {
 		case i := <-input:
-			if i == rune('w') {
-				ws += -1
+			if i == rune('w') && ws > 0 {
+				ws += -2
 			}
-			if i == rune('s') {
-				ws += 1
+			if i == rune('s') && ws < config.Screen.Height-5 {
+				ws += 2
 			}
 			pPozA, pPozB = drawPlayerBlock(&screenBuff, ws)
-			// fmt.Printf("Input : %v %d\n", i, ws)
-			// case <-time.After(5000 * time.Millisecond):
-			// 	fmt.Println("Time out!")
 		}
 	}
 	time.Sleep(25 * time.Minute)

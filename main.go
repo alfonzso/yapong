@@ -444,10 +444,11 @@ func drawPlayerBlock(screenBuff *screenBuffer, ws int) (Points, Points) {
 	pLen := 5
 	// xArray := []int{}
 	for x := pFirstIndex; x < pFirstIndex+pLen; x++ {
-		for y := 0; y < 2; y++ {
-			(*screenBuff)[x][y] = block
-			// xArray = append(xArray, x)
-		}
+		// for y := 0; y < 2; y++ {
+		(*screenBuff)[x][0] = block
+		(*screenBuff)[x][1] = block
+		// xArray = append(xArray, x)
+		// }
 	}
 
 	// return Points{xArray[0], 1}, Points{xArray[len(xArray)-1], 1}

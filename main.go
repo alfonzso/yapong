@@ -348,25 +348,16 @@ func BallAnimation(p Points, screenBuff *screenBuffer, memo *Memory, pAX, pAY, p
 	for true {
 
 		(*screenBuff)[memo.x][memo.y] = memo.val
-
 		p.x += directionMap[memo.direction].x
 		p.y += directionMap[memo.direction].y * 10
-
-		// fmt.Println(x, y, memo.direction)
-
 		newDirection := memo.direction
 
-		// x -> 20 -- 30
-		// y -> 1  -- 2
-		// playaLine := []Points{{15, 1}, {25, 1}}
-		ballLine := []Points{{memo.x, memo.y}, {p.x, p.y}}
+		// ballLine := []Points{{memo.x, memo.y}, {p.x, p.y}}
 
 		AInter := isintersect(*pAX, *pAY, Points{memo.x, memo.y}, Points{p.x, p.y})
 		BInter := isintersect(*pBX, *pBY, Points{memo.x, memo.y}, Points{p.x, p.y})
-		// res := isLinesIntersect(ballLine, playaLine)
-		fmt.Println("..........................", pBX, pBY, ballLine)
+		// fmt.Println("..........................", pBX, pBY, ballLine)
 		if AInter || BInter {
-			// os.Exit(1)
 			time.Sleep(5 * time.Second)
 		}
 
@@ -378,7 +369,6 @@ func BallAnimation(p Points, screenBuff *screenBuffer, memo *Memory, pAX, pAY, p
 			p.y = point.y
 			*memo = Memory{p, PointsToScreenBuff(p, *screenBuff), newDirection}
 		} else {
-			// *memo = Memory{p, (*screenBuff)[p.x][p.y], memo.direction}
 			*memo = Memory{p, PointsToScreenBuff(p, *screenBuff), memo.direction}
 		}
 		(*screenBuff)[p.x][p.y] = ball
@@ -438,22 +428,21 @@ func cleanupPlayer(screenBuff *screenBuffer, playa int) {
 	}
 }
 
-func drawPlayerBlock(screenBuff *screenBuffer, ws int, isAPlayer bool) (Points, Points) {
-	pFirstIndex := ws
-	pLen := 5
+func drawPlayerBlock(screenBuff *screenBuffer, wsik int, isAPlayer bool) (Points, Points) {
+	blockLen := 5
 
 	player := 0
 	if !isAPlayer {
 		player = len((*screenBuff)[0]) - 2
 	}
 	cleanupPlayer(screenBuff, player)
-	for x := pFirstIndex; x < pFirstIndex+pLen; x++ {
+	for x := wsik; x < wsik+blockLen; x++ {
 		for y := player; y < player+2; y++ {
 			(*screenBuff)[x][y] = block
 		}
 	}
 
-	return Points{pFirstIndex, player + 2}, Points{pFirstIndex + pLen, player + 2}
+	return Points{wsik, player + 2}, Points{wsik + blockLen, player + 2}
 }
 
 func PointsToScreenBuff(p Points, screenBuff screenBuffer) rune {
@@ -478,21 +467,7 @@ func readKey(input chan rune) {
 			fmt.Print("\033[H")
 			fmt.Print("\033[2J")
 		}
-		// fmt.Printf("You pressed: %q\r\n", char)
 	}
-	// scanner := bufio.NewScanner(os.Stdin)
-	// logrus.Println("kekek")
-	// for scanner.Scan() {
-	// 	fmt.Printf("--->>> %s", scanner.Text())
-	// }
-	// return
-	// for true {
-	// 	char, _, err := reader.ReadRune()
-	// 	if err != nil {
-	// 		logrus.Fatal(err)
-	// 	}
-	// 	input <- char
-	// }
 }
 
 func main() {
@@ -513,11 +488,8 @@ func main() {
 	go Animation(&screenBuff)
 
 	go BallAnimation(p, &screenBuff, &gameMemory, &pAPozX, &pAPozY, &pBPozX, &pBPozY)
-	// logrus.Println(pPozA, pPozB, gameMemory)
 
-	// go KeyBoardHandler()
 	input := make(chan rune, 1)
-	// fmt.Println("Checking keyboard input...")
 	go readKey(input)
 	for true {
 		select {

@@ -206,11 +206,15 @@ func DrawSideBalls(p Points, config Config, screenBuff *screenBuffer, memo *Memo
 
 	if p.y < 0 || p.y > config.Screen.Width-1 {
 		newY := config.Screen.Width - 1
+		newX := p.x
 		if p.y < 0 {
 			newY = 0
 		}
-		*memo = Memory{p, PointsToScreenBuff(Points{p.x, newY}, *screenBuff), memo.direction}
-		(*screenBuff)[p.x][newY] = ball
+		if p.x < 0 {
+			newX = 0
+		}
+		*memo = Memory{Points{newX, newY}, PointsToScreenBuff(Points{newX, newY}, *screenBuff), memo.direction}
+		(*screenBuff)[newX][newY] = ball
 		time.Sleep(time.Duration(speedMS) * time.Millisecond)
 		(*screenBuff)[memo.x][newY] = memo.val
 	}
@@ -343,13 +347,13 @@ func HandlePlayerMovements(screenBuff *screenBuffer, pAPozX, pAPozY, pBPozX, pBP
 			if i == rune('w') && ws > 0 {
 				ws += -2
 			}
-			if i == rune('s') && ws < config.Screen.Height-5 {
+			if i == rune('s') && ws < config.Screen.Height-6 {
 				ws += 2
 			}
 			if i == rune('i') && ik > 0 {
 				ik += -2
 			}
-			if i == rune('k') && ik < config.Screen.Height-5 {
+			if i == rune('k') && ik < config.Screen.Height-6 {
 				ik += 2
 			}
 			*pAPozX, *pAPozY = drawPlayerBlock(screenBuff, ws, true)

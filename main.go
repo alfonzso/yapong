@@ -17,7 +17,7 @@ var half = rune('¦')
 var ball = rune('■')
 
 var config = Config{}
-var speedMS = 150
+var speedMS = 175
 
 type screenLine = []rune
 type screenBuffer = []screenLine
